@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+
 import '../models/detection_result.dart';
 
 /// Abstraction over "however we get detections for an image".
@@ -101,50 +105,66 @@ class MockDetectionService implements DetectionService {
   }
 }
 
-// ============================================================================
-// 🔌 FUTURE REAL BACKEND INTEGRATION POINT
-// ============================================================================
-// When the Python/Colab-trained model is served behind a real API,
-// implement DetectionService like this and swap the single line at
-// the bottom of this file. No screen, widget, or model file needs to
-// change — they only depend on the DetectionService interface above.
-//
-// Uncomment, then add to pubspec.yaml (already listed) and import:
-//   import 'dart:convert';
-//   import 'package:http/http.dart' as http;
-//
-// class ApiDetectionService implements DetectionService {
-//   final String baseUrl;
-//   ApiDetectionService({required this.baseUrl});
-//
-//   @override
-//   Future<DetectionResponse> analyseImage(Uint8List imageBytes) async {
-//     final uri = Uri.parse('$baseUrl/detect');
-//     final request = http.MultipartRequest('POST', uri)
-//       ..files.add(http.MultipartFile.fromBytes(
-//         'image',
-//         imageBytes,
-//         filename: 'upload.jpg',
-//       ));
-//
-//     final streamed = await request.send();
-//     final response = await http.Response.fromStream(streamed);
-//
-//     if (response.statusCode != 200) {
-//       throw DetectionServiceException(
-//         'Detection service returned ${response.statusCode}',
-//       );
-//     }
-//
-//     final json = jsonDecode(response.body) as Map<String, dynamic>;
-//     return DetectionResponse.fromJson(json);
-//   }
-// }
-// ============================================================================
+// / Real implementation that calls a backend API to get detections.
+class ApiDetectionService implements DetectionService {
+  final String baseUrl;
+
+  ApiDetectionService({
+    required this.baseUrl,
+  });
+
+  @override
+  Future<DetectionResponse> analyseImage(Uint8List imageBytes) async {
+    try {
+      final uri = Uri.parse('$baseUrl/predict');
+
+      final request = http.MultipartRequest(
+        'POST',
+        uri,
+      );
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: 'upload.jpg',
+        ),
+      );
+
+      final streamedResponse = await request.send();
+
+      final response = await http.Response.fromStream(
+        streamedResponse,
+      );
+
+      if (response.statusCode != 200) {
+        throw DetectionServiceException(
+          'Detection service returned ${response.statusCode}',
+        );
+      }
+
+      final json =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      return DetectionResponse.fromJson(json);
+    } catch (e) {
+      if (e is DetectionServiceException) {
+        rethrow;
+      }
+
+      throw DetectionServiceException(
+        'Could not reach the detection service.',
+      );
+    }
+  }
+}
 
 /// Single instantiation point used across the whole app.
 ///
 /// 👉 TO SWITCH TO A REAL BACKEND: change this one line, e.g.:
 ///    final DetectionService detectionService =
 ///        ApiDetectionService(baseUrl: 'https://your-api.example.com');
-final DetectionService detectionService = MockDetectionService();
+final DetectionService detectionService =
+    ApiDetectionService(
+      baseUrl: 'http://127.0.0.1:8000',
+    );
