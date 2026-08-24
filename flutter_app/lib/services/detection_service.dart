@@ -208,6 +208,6 @@ class MockDetectionService implements DetectionService {
 ///        ApiDetectionService(baseUrl: 'https://your-api.example.com');
 final DetectionService detectionService =
     ApiDetectionService(
-      baseUrl: 'http://127.0.0.1:8000',
+      baseUrl: 'https://ai-waste-detection-classification.onrender.com',
     );
 
