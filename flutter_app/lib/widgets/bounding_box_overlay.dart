@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
 import '../models/detection_result.dart';
 
-/// Draws bounding boxes + labels over a displayed image.
+/// Draws the single primary detection's bounding box + label over a
+/// displayed image.
 ///
-/// [detections] boxes are expressed in the *original* image's pixel
-/// space ([imageWidth] x [imageHeight]); this widget scales them to
-/// whatever size the image is actually rendered at, via
-/// [BoundingBox.toRect]. Place this in a [Stack] on top of the image.
+/// [detection] is expressed in the analysed image's pixel space
+/// ([imageWidth] x [imageHeight]). The painter uses the same geometry as
+/// `BoxFit.contain`: it preserves aspect ratio and accounts for any
+/// letterboxing offsets before mapping the box to screen coordinates.
+///
+/// This keeps the overlay aligned even if the surrounding result layout is
+/// later changed to an aspect ratio that does not exactly match the image.
+/// Pass `null` to draw nothing (for example, for a no-detection result).
 class BoundingBoxOverlay extends StatelessWidget {
-  final List<DetectionResult> detections;
+  final DetectionResult? detection;
   final double imageWidth;
   final double imageHeight;
 
   const BoundingBoxOverlay({
     super.key,
-    required this.detections,
+    required this.detection,
     required this.imageWidth,
     required this.imageHeight,
   });
 
   @override
   Widget build(BuildContext context) {
+    final d = detection;
+    if (d == null) return const SizedBox.shrink();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
           painter: _BoundingBoxPainter(
-            detections: detections,
+            detection: d,
             srcWidth: imageWidth,
             srcHeight: imageHeight,
+            color: Theme.of(context).colorScheme.primary,
           ),
         );
       },
@@ -37,82 +46,84 @@ class BoundingBoxOverlay extends StatelessWidget {
 }
 
 class _BoundingBoxPainter extends CustomPainter {
-  final List<DetectionResult> detections;
+  final DetectionResult detection;
   final double srcWidth;
   final double srcHeight;
+  final Color color;
 
   _BoundingBoxPainter({
-    required this.detections,
+    required this.detection,
     required this.srcWidth,
     required this.srcHeight,
+    required this.color,
   });
-
-  static const List<Color> _palette = [
-    Color(0xFF2E7D32),
-    Color(0xFFEF6C00),
-    Color(0xFF1565C0),
-    Color(0xFF6D4C41),
-    Color(0xFFAD1457),
-  ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var i = 0; i < detections.length; i++) {
-      final d = detections[i];
-      final rect = d.boundingBox.toRect(
-        srcWidth: srcWidth,
-        srcHeight: srcHeight,
-        dstWidth: size.width,
-        dstHeight: size.height,
-      );
-      final color = _palette[i % _palette.length];
+    if (srcWidth <= 0 || srcHeight <= 0 || size.isEmpty) return;
 
-      final boxPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = color;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(6)),
-        boxPaint,
-      );
+    // Match Image(..., fit: BoxFit.contain): scale uniformly, then centre
+    // the rendered image inside the available widget area.
+    final scaleX = size.width / srcWidth;
+    final scaleY = size.height / srcHeight;
+    final scale = scaleX < scaleY ? scaleX : scaleY;
 
-      final label =
-          '${d.rawLabel} ${(d.confidence * 100).toStringAsFixed(0)}%';
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
+    final renderedWidth = srcWidth * scale;
+    final renderedHeight = srcHeight * scale;
+    final offsetX = (size.width - renderedWidth) / 2;
+    final offsetY = (size.height - renderedHeight) / 2;
+
+    final box = detection.boundingBox;
+    final rect = Rect.fromLTRB(
+      offsetX + box.left * scale,
+      offsetY + box.top * scale,
+      offsetX + box.right * scale,
+      offsetY + box.bottom * scale,
+    );
+
+    final boxPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = color;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      boxPaint,
+    );
+
+    final label =
+        '${detection.rawLabel} ${(detection.confidence * 100).toStringAsFixed(0)}%';
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
         ),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
 
-      final labelTop = (rect.top - textPainter.height - 6).clamp(
-        0.0,
-        size.height,
-      );
-      final labelRect = Rect.fromLTWH(
-        rect.left,
-        labelTop,
-        textPainter.width + 10,
-        textPainter.height + 6,
-      );
+    final labelTop = (rect.top - textPainter.height - 8).clamp(0.0, size.height);
+    final labelRect = Rect.fromLTWH(
+      rect.left,
+      labelTop,
+      textPainter.width + 12,
+      textPainter.height + 6,
+    );
 
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(labelRect, const Radius.circular(4)),
-        Paint()..color = color,
-      );
-      textPainter.paint(canvas, Offset(labelRect.left + 5, labelRect.top + 3));
-    }
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(labelRect, const Radius.circular(4)),
+      Paint()..color = color,
+    );
+    textPainter.paint(canvas, Offset(labelRect.left + 6, labelRect.top + 3));
   }
 
   @override
   bool shouldRepaint(covariant _BoundingBoxPainter oldDelegate) {
-    return oldDelegate.detections != detections ||
+    return oldDelegate.detection != detection ||
         oldDelegate.srcWidth != srcWidth ||
-        oldDelegate.srcHeight != srcHeight;
+        oldDelegate.srcHeight != srcHeight ||
+        oldDelegate.color != color;
   }
 }

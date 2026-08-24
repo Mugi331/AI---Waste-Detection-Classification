@@ -4,19 +4,17 @@ import '../models/detection_result.dart';
 import 'confidence_indicator.dart';
 import 'recycling_guidance_card.dart';
 
-/// One card representing a single detected item: material class,
-/// confidence score, and its recycling guidance. ResultScreen renders
-/// one of these per entry in [DetectionResponse.detections], so
-/// multiple detections in one image are shown as a simple list.
+/// Card representing the app's SINGLE primary result for the
+/// photographed item: material class, model confidence, and its
+/// recycling guidance.
+///
+/// Deliberately has no ordinal numbering ("Detection 1", "Detection
+/// 2", ...) — this app always shows at most one of these per photo,
+/// matching the single-item scanning product interaction.
 class DetectionCard extends StatelessWidget {
   final DetectionResult detection;
-  final int index;
 
-  const DetectionCard({
-    super.key,
-    required this.detection,
-    required this.index,
-  });
+  const DetectionCard({super.key, required this.detection});
 
   IconData _iconFor(WasteClass c) {
     switch (c) {
@@ -76,7 +74,7 @@ class DetectionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Detection ${index + 1}',
+                        'Primary Material Prediction',
                         style: Theme.of(context).textTheme.labelMedium?.copyWith(
                               color: scheme.outline,
                             ),
@@ -93,7 +91,15 @@ class DetectionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            // --- AI output ---------------------------------------------
+            // --- AI output (model confidence score, not a probability
+            // of correctness) --------------------------------------
+            Text(
+              'Model confidence',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.outline,
+                  ),
+            ),
+            const SizedBox(height: 4),
             ConfidenceIndicator(confidence: detection.confidence),
             const SizedBox(height: 16),
             // --- Application logic (NOT from the AI model) -------------

@@ -23,15 +23,22 @@ class _ScanScreenState extends State<ScanScreen> {
   String? _errorMessage;
 
   Future<void> _pickImage(ImageSource source) async {
+    // Prevent picking a new image mid-analysis, which could otherwise
+    // race with an in-flight request and show a stale result.
+    if (_status == _ScanStatus.analysing) return;
+
     try {
       final XFile? file = await _picker.pickImage(
         source: source,
         imageQuality: 90,
         maxWidth: 1600,
       );
-      if (file == null) return; // user cancelled
+      if (file == null) return; // user cancelled — leave state as-is
 
       final bytes = await file.readAsBytes();
+
+      // A new image invalidates any previous analysis/error — always
+      // start the next screen state from a clean slate.
       setState(() {
         _imageBytes = bytes;
         _status = _ScanStatus.idle;
@@ -46,7 +53,10 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _analyse() async {
-    if (_imageBytes == null) return;
+    // Guards: no image selected, or a request already in flight.
+    if (_imageBytes == null || _status == _ScanStatus.analysing) return;
+
+    final bytesAtRequestTime = _imageBytes!;
 
     setState(() {
       _status = _ScanStatus.analysing;
@@ -55,30 +65,42 @@ class _ScanScreenState extends State<ScanScreen> {
 
     try {
       // ------------------------------------------------------------
-      // 🔌 This is the single call site for AI inference. It goes
-      // through the DetectionService abstraction (currently mocked),
-      // so swapping in a real backend call requires no changes here
-      // — only in lib/services/detection_service.dart.
+      // 🔌 Single call site for AI inference. Exactly one request per
+      // tap (guarded above). Goes through the DetectionService
+      // abstraction (currently mocked), so swapping in the real
+      // backend requires no changes here — only in
+      // lib/services/detection_service.dart.
       // ------------------------------------------------------------
-      final result = await detectionService.analyseImage(_imageBytes!);
+      final result = await detectionService.analyseImage(bytesAtRequestTime);
 
       if (!mounted) return;
+      // If the user swapped to a different image while this request
+      // was in flight, discard this now-stale result rather than
+      // navigating to a screen for the wrong photo.
+      if (_imageBytes != bytesAtRequestTime) return;
+
       setState(() => _status = _ScanStatus.idle);
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultScreen(
-            imageBytes: _imageBytes!,
+            imageBytes: bytesAtRequestTime,
             response: result,
           ),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
+    } on DetectionServiceException catch (e) {
+      if (!mounted || _imageBytes != bytesAtRequestTime) return;
       setState(() {
         _status = _ScanStatus.error;
-        _errorMessage = e.toString();
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted || _imageBytes != bytesAtRequestTime) return;
+      setState(() {
+        _status = _ScanStatus.error;
+        _errorMessage = 'Something went wrong while analysing the image.';
       });
     }
   }
@@ -94,6 +116,8 @@ class _ScanScreenState extends State<ScanScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
+              _buildInstructions(scheme),
+              const SizedBox(height: 12),
               Expanded(child: _buildPreviewArea(scheme)),
               const SizedBox(height: 20),
               if (_status == _ScanStatus.error && _errorMessage != null)
@@ -153,6 +177,33 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
+  Widget _buildInstructions(ColorScheme scheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.center_focus_strong, size: 18, color: scheme.onSecondaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Photograph one item at a time. Keep it centred, fully visible, '
+              'and well lit.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSecondaryContainer,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreviewArea(ColorScheme scheme) {
     return Container(
       width: double.infinity,
@@ -170,7 +221,7 @@ class _ScanScreenState extends State<ScanScreen> {
               : Image.memory(_imageBytes!, fit: BoxFit.contain),
           if (_status == _ScanStatus.analysing)
             Container(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.black.withValues(alpha: 0.35),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

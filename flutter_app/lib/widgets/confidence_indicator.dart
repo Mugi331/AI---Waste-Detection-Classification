@@ -30,7 +30,7 @@ class ConfidenceIndicator extends StatelessWidget {
             child: LinearProgressIndicator(
               value: clamped,
               minHeight: 8,
-              backgroundColor: color.withOpacity(0.15),
+              backgroundColor: color.withValues(alpha: 0.15),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),

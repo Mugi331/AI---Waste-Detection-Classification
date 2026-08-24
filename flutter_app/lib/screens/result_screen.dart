@@ -6,6 +6,12 @@ import '../models/detection_result.dart';
 import '../widgets/bounding_box_overlay.dart';
 import '../widgets/detection_card.dart';
 
+/// Shows the outcome of analysing ONE photographed waste item:
+/// either a single primary result (image + one box + one confidence
+/// score + one recycling recommendation), or a clear "no confident
+/// detection" state. Never shows a count of "items detected" and
+/// never lists multiple result cards — this app is a single-item
+/// scanner, not a general multi-object detector viewer.
 class ResultScreen extends StatelessWidget {
   final Uint8List imageBytes;
   final DetectionResponse response;
@@ -32,7 +38,11 @@ class ResultScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- Image + bounding-box overlay -----------------
+                      // --- Image + single bounding-box overlay -----------
+                      // The AspectRatio here is matched exactly to the
+                      // analysed image's own aspect ratio, so BoxFit.cover
+                      // produces no cropping/letterboxing — see the
+                      // alignment note in bounding_box_overlay.dart.
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: AspectRatio(
@@ -41,35 +51,24 @@ class ResultScreen extends StatelessWidget {
                             fit: StackFit.expand,
                             children: [
                               Image.memory(imageBytes, fit: BoxFit.cover),
-                              if (response.hasDetections)
-                                BoundingBoxOverlay(
-                                  detections: response.detections,
-                                  imageWidth: response.imageWidth,
-                                  imageHeight: response.imageHeight,
-                                ),
+                              BoundingBoxOverlay(
+                                detection: response.hasResult
+                                    ? response.primaryDetection
+                                    : null,
+                                imageWidth: response.imageWidth,
+                                imageHeight: response.imageHeight,
+                              ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // --- Detections list, or empty state --------------
-                      if (response.hasDetections) ...[
-                        Text(
-                          '${response.detections.length} item'
-                          '${response.detections.length > 1 ? 's' : ''} detected',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        for (var i = 0; i < response.detections.length; i++)
-                          DetectionCard(
-                            detection: response.detections[i],
-                            index: i,
-                          ),
-                      ] else
-                        _buildEmptyState(context, scheme),
+                      // --- Single result, or no-detection state ----------
+                      if (response.hasResult)
+                        DetectionCard(detection: response.primaryDetection!)
+                      else
+                        _buildNoDetectionState(context, scheme),
                     ],
                   ),
                 ),
@@ -91,10 +90,10 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, ColorScheme scheme) {
+  Widget _buildNoDetectionState(BuildContext context, ColorScheme scheme) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
@@ -104,7 +103,7 @@ class ResultScreen extends StatelessWidget {
           Icon(Icons.search_off, size: 48, color: scheme.outline),
           const SizedBox(height: 12),
           Text(
-            'No recyclable material detected',
+            'No confident material was detected',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -112,12 +111,46 @@ class ResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Try a clearer photo, better lighting, or move closer to the item.',
+            'The photo didn\'t contain a result the app was confident enough '
+            'to show. To improve results, try to:',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: scheme.outline,
                 ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                _Tip(text: 'Photograph one item at a time'),
+                _Tip(text: 'Centre the item in the frame'),
+                _Tip(text: 'Move closer so it fills more of the photo'),
+                _Tip(text: 'Improve lighting and avoid strong shadows'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Tip extends StatelessWidget {
+  final String text;
+  const _Tip({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('•  '),
+          Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
         ],
       ),
     );

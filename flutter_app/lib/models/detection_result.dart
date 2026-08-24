@@ -98,30 +98,61 @@ class DetectionResult {
   }
 }
 
-/// Full result for one analysed image: the detections plus the pixel
-/// dimensions of the image they were computed on. The dimensions are
-/// required to correctly scale bounding boxes onto the preview image
-/// widget, whatever size it ends up being rendered at.
+/// High-level outcome of one analysis request, mirroring the
+/// backend's "status" field. Kept as an enum rather than a bool so a
+/// future distinct status (e.g. "invalid_image") can be added without
+/// having to reinterpret a boolean.
+enum DetectionStatus { success, noDetection }
+
+DetectionStatus _statusFromJson(String? raw) {
+  switch (raw) {
+    case 'success':
+      return DetectionStatus.success;
+    case 'no_detection':
+    default:
+      return DetectionStatus.noDetection;
+  }
+}
+
+/// Result of analysing ONE user-submitted photo of ONE waste item.
+///
+/// The detector may internally evaluate several candidate boxes (see
+/// [candidateCount]), but this app is a single-item scanner: only ONE
+/// primary detection is ever surfaced to the UI. This intentionally
+/// replaces an earlier `detections: List<DetectionResult>` design —
+/// exposing a list left the UI to interpret "how many results do I
+/// show", which doesn't match the single-item product interaction.
 class DetectionResponse {
-  final List<DetectionResult> detections;
+  final DetectionResult? primaryDetection;
   final double imageWidth;
   final double imageHeight;
+  final int candidateCount;
+  final DetectionStatus status;
 
   const DetectionResponse({
-    required this.detections,
+    required this.primaryDetection,
     required this.imageWidth,
     required this.imageHeight,
+    required this.candidateCount,
+    required this.status,
   });
 
-  bool get hasDetections => detections.isNotEmpty;
+  /// True only when the backend both found AND accepted a primary
+  /// detection. Guards defensively against a non-null
+  /// [primaryDetection] ever appearing alongside a non-success status.
+  bool get hasResult =>
+      status == DetectionStatus.success && primaryDetection != null;
 
   factory DetectionResponse.fromJson(Map<String, dynamic> json) {
+    final rawPrimary = json['primary_detection'];
     return DetectionResponse(
-      detections: (json['detections'] as List)
-          .map((e) => DetectionResult.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      primaryDetection: rawPrimary == null
+          ? null
+          : DetectionResult.fromJson(rawPrimary as Map<String, dynamic>),
       imageWidth: (json['image_width'] as num).toDouble(),
       imageHeight: (json['image_height'] as num).toDouble(),
+      candidateCount: (json['candidate_count'] as num?)?.toInt() ?? 0,
+      status: _statusFromJson(json['status'] as String?),
     );
   }
 }
