@@ -27,10 +27,10 @@ CENTER_REGION_RATIO = 0.60
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 CANONICAL_CLASSES = {
-    0: "Glass",
+    0: "Plastic",
     1: "Metal",
     2: "Paper_Cardboard",
-    3: "Plastic",
+    3: "Glass",
 }
 
 
