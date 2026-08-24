@@ -40,3 +40,5 @@ Thumbs.db
 
 # Keep the deployed YOLO model
 !backend/models/best.pt
+
+!backend/models/best.onnx
