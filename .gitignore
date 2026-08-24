@@ -34,3 +34,9 @@ venv/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Ignore PyTorch weights generally
+*.pt
+
+# Keep the deployed YOLO model
+!backend/models/best.pt
