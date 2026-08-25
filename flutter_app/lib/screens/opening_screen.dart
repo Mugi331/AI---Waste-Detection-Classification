@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
-import 'scan_screen.dart';
+import 'home_screen.dart';
 
 class OpeningScreen extends StatefulWidget {
   const OpeningScreen({super.key});
@@ -45,7 +45,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const ScanScreen(),
+        builder: (context) => const HomeScreen(),
       ),
     );
   }
@@ -120,15 +120,15 @@ class _OpeningScreenState extends State<OpeningScreen> {
                   // App name
                   // -------------------------------------------------
 
-                  const Text(
+                  Text(
                     'WE Snap',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF5B3A29),
-                      letterSpacing: 0.5,
-                    ),
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                          fontSize: 50,
+                          fontWeight: FontWeight.w800,
+                          color: const Color.fromARGB(255, 59, 46, 40),
+                          letterSpacing: 0.5,
+                        ),
                   ),
 
                   const SizedBox(height: 8),
@@ -142,9 +142,9 @@ class _OpeningScreenState extends State<OpeningScreen> {
                     'Snap it. Sort it. Recycle it.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 20,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF7D654E),
+                      color: Color.fromARGB(255, 102, 81, 62),
                     ),
                   ),
 
@@ -164,16 +164,16 @@ class _OpeningScreenState extends State<OpeningScreen> {
 
                       style: FilledButton.styleFrom(
                         backgroundColor:
-                            const Color(0xFFA9C889),
+                            const Color.fromARGB(255, 255, 244, 184),
 
                         foregroundColor:
-                            const Color(0xFF49352A),
+                            const Color.fromARGB(255, 65, 53, 48),
 
                         elevation: 2,
 
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(28),
+                              BorderRadius.circular(60),
                         ),
                       ),
 
@@ -183,16 +183,15 @@ class _OpeningScreenState extends State<OpeningScreen> {
                         children: [
 
                           Icon(
-                            Icons.camera_alt_rounded,
-                            size: 20,
+                            Icons.eco_rounded,
+                            size: 30,
                           ),
-
                           SizedBox(width: 8),
 
                           Text(
-                            'Start Snapping',
+                            'Get Started',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -201,7 +200,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 70),
                 ],
               ),
             ),
