@@ -36,7 +36,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 28),
                     Text(
-                      'EcoSort AI',
+                      'WE Snap',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -81,7 +81,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'University AI Prototype · Pluggable detection backend',
+                      'University AI Prototype',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.outline,
                           ),
