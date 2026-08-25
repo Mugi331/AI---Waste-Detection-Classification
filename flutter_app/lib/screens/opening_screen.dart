@@ -200,7 +200,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 70),
+                  const SizedBox(height: 50),
                 ],
               ),
             ),
