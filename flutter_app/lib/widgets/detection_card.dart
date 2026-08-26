@@ -123,25 +123,39 @@ class DetectionCard extends StatelessWidget {
                       binAsset,
                       fit: BoxFit.contain,
 
-                      // Useful while testing mobile deployment.
                       errorBuilder: (
                         context,
                         error,
                         stackTrace,
                       ) {
                         debugPrint(
-                          'Failed to load bin asset: $binAsset',
+                          'BIN ASSET FAILED: $binAsset',
                         );
 
                         debugPrint(
-                          'Asset error: $error',
+                          'BIN ASSET ERROR: $error',
                         );
 
-                        return const Center(
-                          child: Icon(
-                            Icons.recycling_rounded,
-                            size: 70,
-                            color: AppColors.brownSecondary,
+                        return Container(
+                          width: 130,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius:
+                                BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.red,
+                              width: 2,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'BIN FAILED',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         );
                       },
