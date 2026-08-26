@@ -109,31 +109,63 @@ class DetectionCard extends StatelessWidget {
             const SizedBox(height: 4),
             ConfidenceIndicator(confidence: detection.confidence),
 
-            // --- Recycling-bin illustration (presentation only — see
-            // BinAssetMapper doc comment) --------------------------------
+            // --- Recycling-bin illustration ----------------------------
+
             if (binAsset != null) ...[
               const SizedBox(height: 20),
+
               Center(
                 child: _BinPop(
-                  child: Image.asset(
-                    binAsset,
+                  child: SizedBox(
                     width: 130,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stack) =>
-                        const SizedBox(height: 130),
+                    height: 130,
+                    child: Image.asset(
+                      binAsset,
+                      fit: BoxFit.contain,
+
+                      // Useful while testing mobile deployment.
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        debugPrint(
+                          'Failed to load bin asset: $binAsset',
+                        );
+
+                        debugPrint(
+                          'Asset error: $error',
+                        );
+
+                        return const Center(
+                          child: Icon(
+                            Icons.recycling_rounded,
+                            size: 70,
+                            color: AppColors.brownSecondary,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 10),
+
               Center(
                 child: Text(
                   'Recycle using the ${guidance.shortLabel}',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.brownPrimary,
-                      ),
+                  style:
+                      Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            color: AppColors.brownPrimary,
+                          ),
                 ),
               ),
+
               const SizedBox(height: 16),
             ] else
               const SizedBox(height: 16),

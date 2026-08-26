@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 import 'result_screen.dart';
 
 import 'dart:async';
-import 'dart:typed_data';
+
 
 enum _ScanStatus { idle, analysing, error }
 
