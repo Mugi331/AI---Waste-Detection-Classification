@@ -3,13 +3,13 @@ import 'package:flutter/foundation.dart';
 
 /// Centralised audio controller for WE Snap.
 ///
-/// Uses:
-/// - one player for looping background music
-/// - one player for button/UI click sounds
-/// - one player for result/error feedback sounds
+/// Uses separate players for:
+/// - looping background music
+/// - button/UI click sounds
+/// - result/error feedback sounds
 ///
-/// Keeping them separate prevents a click sound from interrupting
-/// success/error feedback or background music.
+/// The feedback player is race-safe: if success and error are requested
+/// very close together, only the newest feedback request is allowed to play.
 class AppAudioService {
   AppAudioService._();
 
@@ -22,6 +22,8 @@ class AppAudioService {
   bool _bgmEnabled = true;
   bool _sfxEnabled = true;
   bool _bgmStarted = false;
+
+  int _feedbackRequestId = 0;
 
   bool get bgmEnabled => _bgmEnabled;
   bool get sfxEnabled => _sfxEnabled;
@@ -115,57 +117,63 @@ class AppAudioService {
   }
 
   // ============================================================
-  // SUCCESS SOUND
+  // RESULT / ERROR FEEDBACK
   // ============================================================
 
   Future<void> playSuccess() async {
-    if (!_sfxEnabled) return;
-
-    try {
-      await _feedbackPlayer.stop();
-
-      await _feedbackPlayer.setVolume(
-        0.65,
-      );
-
-      await _feedbackPlayer.play(
-        AssetSource(
-          'audio/success.mp3',
-        ),
-      );
-    } catch (error) {
-      debugPrint(
-        'Success SFX failed: $error',
-      );
-    }
+    await _playFeedback(
+      'audio/success.mp3',
+      label: 'Success',
+    );
   }
-
-  // ============================================================
-  // ERROR / NO-DETECTION SOUND
-  // ============================================================
 
   Future<void> playError() async {
+    await _playFeedback(
+      'audio/error.mp3',
+      label: 'Error',
+    );
+  }
+
+  Future<void> _playFeedback(
+    String assetPath, {
+    required String label,
+  }) async {
     if (!_sfxEnabled) return;
+
+    // Every new request invalidates any older feedback request that
+    // might still be waiting on an async audio operation.
+    final requestId = ++_feedbackRequestId;
 
     try {
       await _feedbackPlayer.stop();
+
+      if (requestId != _feedbackRequestId) {
+        return;
+      }
 
       await _feedbackPlayer.setVolume(
         0.65,
       );
 
+      if (requestId != _feedbackRequestId) {
+        return;
+      }
+
       await _feedbackPlayer.play(
         AssetSource(
-          'audio/error.mp3',
+          assetPath,
         ),
       );
     } catch (error) {
       debugPrint(
-        'Error SFX failed: $error',
+        '$label SFX failed: $error',
       );
     }
   }
 
+  // ============================================================
+  // CLEANUP
+  // ============================================================
 
   Future<void> dispose() async {
     await _bgmPlayer.dispose();

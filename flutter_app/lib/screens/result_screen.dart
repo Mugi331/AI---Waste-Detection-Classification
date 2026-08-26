@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../models/detection_result.dart';
-import '../theme/app_theme.dart';
 import '../services/audio_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bounding_box_overlay.dart';
 import '../widgets/detection_card.dart';
 
@@ -27,13 +27,12 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
 
-    // Play one feedback sound when ResultScreen first opens.
+    // ResultScreen is the single authority for result feedback:
+    // success result -> success.mp3
+    // no-detection result -> error.mp3
     if (widget.response.hasResult) {
-      // Waste successfully detected.
       AppAudioService.instance.playSuccess();
     } else {
-      // No confident detection was produced.
-      // Reuse error.mp3 as the no-detection feedback sound.
       AppAudioService.instance.playError();
     }
   }
@@ -54,9 +53,6 @@ class _ResultScreenState extends State<ResultScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- Image + single bounding-box overlay -----------
-                      // The AspectRatio is matched to the analysed image,
-                      // preserving the expected box/image relationship.
                       ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: AspectRatio(
@@ -84,10 +80,7 @@ class _ResultScreenState extends State<ResultScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
-                      // --- Single result, or no-detection state ----------
                       if (widget.response.hasResult)
                         DetectionCard(
                           detection:
@@ -99,9 +92,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 12),
-
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -110,12 +101,14 @@ class _ResultScreenState extends State<ResultScreen> {
 
                     if (!context.mounted) return;
 
-                    // ResultScreen was pushed from ScanScreen,
-                    // so pop returns directly to the existing scanner.
                     Navigator.pop(context);
                   },
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Scan Another Item'),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                  ),
+                  label: const Text(
+                    'Scan Another Item',
+                  ),
                 ),
               ),
             ],
@@ -125,7 +118,9 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  Widget _buildNoDetectionState(BuildContext context) {
+  Widget _buildNoDetectionState(
+    BuildContext context,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -146,9 +141,7 @@ class _ResultScreenState extends State<ResultScreen> {
             size: 44,
             color: AppColors.brownSecondary,
           ),
-
           const SizedBox(height: 12),
-
           Text(
             "Couldn't identify this one",
             style:
@@ -160,9 +153,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     ),
             textAlign: TextAlign.center,
           ),
-
           const SizedBox(height: 6),
-
           Text(
             'Try centring one item, moving closer, or improving the lighting.',
             style:
