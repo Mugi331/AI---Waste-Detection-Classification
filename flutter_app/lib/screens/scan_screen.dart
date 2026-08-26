@@ -8,6 +8,9 @@ import '../services/audio_service.dart';
 import '../theme/app_theme.dart';
 import 'result_screen.dart';
 
+import 'dart:async';
+import 'dart:typed_data';
+
 enum _ScanStatus { idle, analysing, error }
 
 class ScanScreen extends StatefulWidget {
@@ -25,14 +28,16 @@ class _ScanScreenState extends State<ScanScreen> {
   String? _errorMessage;
 
   Future<void> _pickImage(ImageSource source) async {
-    // Prevent picking a new image during analysis.
     if (_status == _ScanStatus.analysing) return;
 
+    // Fire the click sound without waiting for it.
+    // This lets the protected Camera/Gallery action run immediately
+    // from the same user tap.
+    unawaited(
+      AppAudioService.instance.playClick(),
+    );
+
     try {
-      // IMPORTANT:
-      // ImagePicker must be triggered immediately from the user's tap.
-      // Do not await audio or any other async work before this call,
-      // otherwise mobile browsers may block Camera/Gallery access.
       final XFile? file = await _picker.pickImage(
         source: source,
         imageQuality: 90,
@@ -40,9 +45,6 @@ class _ScanScreenState extends State<ScanScreen> {
       );
 
       if (file == null) return;
-
-      // Play feedback AFTER the picker has successfully returned.
-      await AppAudioService.instance.playClick();
 
       final bytes = await file.readAsBytes();
 
