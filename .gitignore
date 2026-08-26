@@ -42,3 +42,6 @@ Thumbs.db
 !backend/models/best.pt
 
 !backend/models/best.onnx
+
+!flutter_app/lib/data/
+!flutter_app/lib/data/bin_asset_mapper.dart
