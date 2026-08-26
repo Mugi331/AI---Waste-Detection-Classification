@@ -25,6 +25,7 @@ dependencies:
   video_player: ^2.9.2
   
   google_fonts: ^6.3.2
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -36,3 +37,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/videos/
+    - assets/branding/
+    - assets/bins/
+    - assets/audio/
+    # Do NOT add assets/audio/, assets/animations/, or
+    # assets/illustrations/ here until those folders and their files
+    # actually exist -- an entry pointing at a missing directory breaks
+    # the build. See lib/services/audio_service.dart for the
+    # audio placeholder pattern used in the meantime.

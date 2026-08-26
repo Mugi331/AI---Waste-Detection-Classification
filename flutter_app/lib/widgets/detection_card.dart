@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import '../data/bin_asset_mapper.dart';
 import '../data/guidance_repository.dart';
 import '../models/detection_result.dart';
+import '../theme/app_theme.dart';
 import 'confidence_indicator.dart';
 import 'recycling_guidance_card.dart';
 
 /// Card representing the app's SINGLE primary result for the
-/// photographed item: material class, model confidence, and its
-/// recycling guidance.
+/// photographed item: detected material, model confidence, a
+/// corresponding recycling-bin illustration, and recycling guidance.
 ///
 /// Deliberately has no ordinal numbering ("Detection 1", "Detection
 /// 2", ...) — this app always shows at most one of these per photo,
@@ -27,7 +29,7 @@ class DetectionCard extends StatelessWidget {
       case WasteClass.glass:
         return Icons.wine_bar_outlined;
       case WasteClass.unknown:
-        return Icons.help_outline;
+        return Icons.help_outline_rounded;
     }
   }
 
@@ -49,23 +51,27 @@ class DetectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final guidance = GuidanceRepository.forClass(detection.wasteClass);
-    final scheme = Theme.of(context).colorScheme;
+    final binAsset = BinAssetMapper.assetFor(detection.wasteClass);
 
     return Card(
+      shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: Color.fromARGB(255, 184, 175, 152)),
+    ),
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 20,
-                  backgroundColor: scheme.primaryContainer,
+                  radius: 22,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   child: Icon(
                     _iconFor(detection.wasteClass),
-                    color: scheme.onPrimaryContainer,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -74,15 +80,15 @@ class DetectionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Primary Material Prediction',
+                        'Detected',
                         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: scheme.outline,
+                              color: AppColors.brownSecondary,
                             ),
                       ),
                       Text(
                         _labelFor(detection.wasteClass, detection.rawLabel),
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: AppColors.brownPrimary,
                             ),
                       ),
                     ],
@@ -90,23 +96,77 @@ class DetectionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+
             // --- AI output (model confidence score, not a probability
-            // of correctness) --------------------------------------
+            // of correctness) ------------------------------------------
             Text(
-              'Model confidence',
+              'Confidence',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.outline,
+                    color: AppColors.brownSecondary,
                   ),
             ),
             const SizedBox(height: 4),
             ConfidenceIndicator(confidence: detection.confidence),
-            const SizedBox(height: 16),
+
+            // --- Recycling-bin illustration (presentation only — see
+            // BinAssetMapper doc comment) --------------------------------
+            if (binAsset != null) ...[
+              const SizedBox(height: 20),
+              Center(
+                child: _BinPop(
+                  child: Image.asset(
+                    binAsset,
+                    width: 130,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stack) =>
+                        const SizedBox(height: 130),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: Text(
+                  'Recycle using the ${guidance.shortLabel}',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.brownPrimary,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else
+              const SizedBox(height: 16),
+
             // --- Application logic (NOT from the AI model) -------------
             RecyclingGuidanceCard(guidance: guidance),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Simple pop + fade entrance for the bin illustration. Built entirely
+/// with core Flutter (TweenAnimationBuilder) — no animation package
+/// needed for this.
+class _BinPop extends StatelessWidget {
+  final Widget child;
+  const _BinPop({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value.clamp(0.0, 1.0),
+          child: Transform.scale(scale: 0.7 + (0.3 * value), child: child),
+        );
+      },
+      child: child,
     );
   }
 }

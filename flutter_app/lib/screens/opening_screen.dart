@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../services/audio_service.dart';
 
 import 'home_screen.dart';
 
@@ -41,7 +42,13 @@ class _OpeningScreenState extends State<OpeningScreen> {
     super.dispose();
   }
 
-  void _startApp() {
+  Future<void> _startApp() async {
+    // The first user gesture is the safest point to start BGM on web/mobile.
+    await AppAudioService.instance.playClick();
+    await AppAudioService.instance.startBgm();
+
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -139,7 +146,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                   // -------------------------------------------------
 
                   const Text(
-                    'Snap it. Sort it. Recycle it.',
+                    'Snap it · Sort it · Recycle it',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 20,
@@ -200,7 +207,7 @@ class _OpeningScreenState extends State<OpeningScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

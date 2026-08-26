@@ -15,6 +15,7 @@ class GuidanceRepository {
   static const Map<WasteClass, RecyclingGuidance> _guidance = {
     WasteClass.plastic: RecyclingGuidance(
       binName: 'Orange Bin — Plastics & Metals',
+      shortLabel: 'Orange Bin',
       binColor: Color(0xFFEF6C00),
       summary: 'Plastic items go in the Orange recycling bin.',
       tips: [
@@ -26,6 +27,7 @@ class GuidanceRepository {
     ),
     WasteClass.metal: RecyclingGuidance(
       binName: 'Orange Bin — Plastics & Metals',
+      shortLabel: 'Orange Bin',
       binColor: Color(0xFFEF6C00),
       summary: 'Metal items (cans, tins, foil) go in the Orange bin.',
       tips: [
@@ -36,6 +38,7 @@ class GuidanceRepository {
     ),
     WasteClass.paperCardboard: RecyclingGuidance(
       binName: 'Blue Bin — Paper',
+      shortLabel: 'Blue Bin',
       binColor: Color(0xFF1565C0),
       summary: 'Paper and cardboard go in the Blue recycling bin.',
       tips: [
@@ -46,6 +49,7 @@ class GuidanceRepository {
     ),
     WasteClass.glass: RecyclingGuidance(
       binName: 'Brown Bin — Glass',
+      shortLabel: 'Brown Bin',
       binColor: Color(0xFF6D4C41),
       summary: 'Glass items go in the Brown recycling bin.',
       tips: [
@@ -56,6 +60,7 @@ class GuidanceRepository {
     ),
     WasteClass.unknown: RecyclingGuidance(
       binName: 'General Waste',
+      shortLabel: 'General Waste',
       binColor: Color(0xFF616161),
       summary:
           'This item could not be confidently matched to a recycling category.',

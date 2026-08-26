@@ -1,44 +1,41 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 /// Small horizontal confidence bar + percentage label.
 ///
-/// Colour-coded so a reviewer can read confidence at a glance:
-///   >= 80%  green   (high confidence)
-///   50-79%  amber   (medium confidence)
-///   < 50%   red     (low confidence)
+/// Uses a single warm sage fill rather than red/amber/green
+/// "traffic-light" styling. A lower score isn't a warning the user
+/// needs to react to — it's simply the model's own confidence in its
+/// one prediction, shown plainly, not editorialised.
 class ConfidenceIndicator extends StatelessWidget {
   final double confidence; // 0.0 - 1.0
 
   const ConfidenceIndicator({super.key, required this.confidence});
 
-  Color _colorFor(double c) {
-    if (c >= 0.8) return const Color(0xFF2E7D32);
-    if (c >= 0.5) return const Color(0xFFF9A825);
-    return const Color(0xFFC62828);
-  }
-
   @override
   Widget build(BuildContext context) {
     final clamped = confidence.clamp(0.0, 1.0);
-    final color = _colorFor(clamped);
 
     return Row(
       children: [
         Expanded(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: clamped,
-              minHeight: 8,
-              backgroundColor: color.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 10,
+              backgroundColor: AppColors.sage.withValues(alpha: 0.18),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.sage),
             ),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           '${(clamped * 100).toStringAsFixed(0)}%',
-          style: TextStyle(fontWeight: FontWeight.w700, color: color),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.brownPrimary,
+          ),
         ),
       ],
     );

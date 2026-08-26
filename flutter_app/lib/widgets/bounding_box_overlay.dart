@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 import '../models/detection_result.dart';
+import '../theme/app_theme.dart';
 
 /// Draws the single primary detection's bounding box + label over a
 /// displayed image.
 ///
-/// [detection] is expressed in the analysed image's pixel space
-/// ([imageWidth] x [imageHeight]). The painter uses the same geometry as
-/// `BoxFit.contain`: it preserves aspect ratio and accounts for any
-/// letterboxing offsets before mapping the box to screen coordinates.
+/// [detection] is expressed in the *original* analysed image's pixel
+/// space ([imageWidth] x [imageHeight]); this widget scales it to
+/// whatever size the image is actually rendered at, via
+/// [BoundingBox.toRect]. Pass `null` to draw nothing (e.g. while no
+/// result exists yet).
 ///
-/// This keeps the overlay aligned even if the surrounding result layout is
-/// later changed to an aspect ratio that does not exactly match the image.
-/// Pass `null` to draw nothing (for example, for a no-detection result).
+/// Coordinate-alignment note (UNCHANGED from the functional refactor —
+/// only the paint colours below were touched for this visual pass):
+/// place this widget inside a [Stack] on top of an [Image] whose
+/// parent is sized with an [AspectRatio] matching
+/// `imageWidth / imageHeight` exactly (see ResultScreen). When the
+/// container's aspect ratio matches the image's own aspect ratio,
+/// `BoxFit.cover` (and `contain`/`fill`) all produce the same result —
+/// no cropping, no letterboxing margins — so this widget's
+/// [LayoutBuilder] constraints are guaranteed to equal the actual
+/// rendered image size, keeping the box perfectly aligned. If you
+/// ever change ResultScreen to allow a mismatched aspect ratio, this
+/// scaling assumption breaks and needs revisiting.
 class BoundingBoxOverlay extends StatelessWidget {
   final DetectionResult? detection;
   final double imageWidth;
@@ -37,7 +48,9 @@ class BoundingBoxOverlay extends StatelessWidget {
             detection: d,
             srcWidth: imageWidth,
             srcHeight: imageHeight,
-            color: Theme.of(context).colorScheme.primary,
+            strokeColor: AppColors.sage,
+            labelBackground: const Color.fromARGB(255, 179, 221, 144),
+            labelTextColor: const Color.fromARGB(255, 71, 59, 53),
           ),
         );
       },
@@ -49,44 +62,35 @@ class _BoundingBoxPainter extends CustomPainter {
   final DetectionResult detection;
   final double srcWidth;
   final double srcHeight;
-  final Color color;
+  final Color strokeColor;
+  final Color labelBackground;
+  final Color labelTextColor;
 
   _BoundingBoxPainter({
     required this.detection,
     required this.srcWidth,
     required this.srcHeight,
-    required this.color,
+    required this.strokeColor,
+    required this.labelBackground,
+    required this.labelTextColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (srcWidth <= 0 || srcHeight <= 0 || size.isEmpty) return;
 
-    // Match Image(..., fit: BoxFit.contain): scale uniformly, then centre
-    // the rendered image inside the available widget area.
-    final scaleX = size.width / srcWidth;
-    final scaleY = size.height / srcHeight;
-    final scale = scaleX < scaleY ? scaleX : scaleY;
-
-    final renderedWidth = srcWidth * scale;
-    final renderedHeight = srcHeight * scale;
-    final offsetX = (size.width - renderedWidth) / 2;
-    final offsetY = (size.height - renderedHeight) / 2;
-
-    final box = detection.boundingBox;
-    final rect = Rect.fromLTRB(
-      offsetX + box.left * scale,
-      offsetY + box.top * scale,
-      offsetX + box.right * scale,
-      offsetY + box.bottom * scale,
+    final rect = detection.boundingBox.toRect(
+      srcWidth: srcWidth,
+      srcHeight: srcHeight,
+      dstWidth: size.width,
+      dstHeight: size.height,
     );
 
     final boxPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
-      ..color = color;
+      ..color = strokeColor;
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      RRect.fromRectAndRadius(rect, const Radius.circular(10)),
       boxPaint,
     );
 
@@ -95,10 +99,10 @@ class _BoundingBoxPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: TextSpan(
         text: label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: labelTextColor,
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -108,22 +112,21 @@ class _BoundingBoxPainter extends CustomPainter {
     final labelRect = Rect.fromLTWH(
       rect.left,
       labelTop,
-      textPainter.width + 12,
+      textPainter.width + 14,
       textPainter.height + 6,
     );
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(labelRect, const Radius.circular(4)),
-      Paint()..color = color,
+      RRect.fromRectAndRadius(labelRect, const Radius.circular(8)),
+      Paint()..color = labelBackground,
     );
-    textPainter.paint(canvas, Offset(labelRect.left + 6, labelRect.top + 3));
+    textPainter.paint(canvas, Offset(labelRect.left + 7, labelRect.top + 3));
   }
 
   @override
   bool shouldRepaint(covariant _BoundingBoxPainter oldDelegate) {
     return oldDelegate.detection != detection ||
         oldDelegate.srcWidth != srcWidth ||
-        oldDelegate.srcHeight != srcHeight ||
-        oldDelegate.color != color;
+        oldDelegate.srcHeight != srcHeight;
   }
 }

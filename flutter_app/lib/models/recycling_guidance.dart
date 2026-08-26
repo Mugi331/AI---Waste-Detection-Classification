@@ -7,12 +7,14 @@ import 'package:flutter/material.dart';
 /// Guidance is looked up separately, in [GuidanceRepository].
 class RecyclingGuidance {
   final String binName;
+  final String shortLabel;
   final Color binColor;
   final String summary;
   final List<String> tips;
 
   const RecyclingGuidance({
     required this.binName,
+    required this.shortLabel,
     required this.binColor,
     required this.summary,
     required this.tips,
