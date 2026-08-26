@@ -24,26 +24,30 @@ class _ScanScreenState extends State<ScanScreen> {
   _ScanStatus _status = _ScanStatus.idle;
   String? _errorMessage;
 
-
   Future<void> _pickImage(ImageSource source) async {
-    // Prevent picking a new image mid-analysis, which could otherwise
-    // race with an in-flight request and show a stale result.
+    // Prevent picking a new image during analysis.
     if (_status == _ScanStatus.analysing) return;
 
-    await AppAudioService.instance.playClick();
-
     try {
+      // IMPORTANT:
+      // ImagePicker must be triggered immediately from the user's tap.
+      // Do not await audio or any other async work before this call,
+      // otherwise mobile browsers may block Camera/Gallery access.
       final XFile? file = await _picker.pickImage(
         source: source,
         imageQuality: 90,
         maxWidth: 1600,
       );
-      if (file == null) return; // user cancelled — leave state as-is
+
+      if (file == null) return;
+
+      // Play feedback AFTER the picker has successfully returned.
+      await AppAudioService.instance.playClick();
 
       final bytes = await file.readAsBytes();
 
-      // A new image invalidates any previous analysis/error — always
-      // start the next screen state from a clean slate.
+      if (!mounted) return;
+
       setState(() {
         _imageBytes = bytes;
         _status = _ScanStatus.idle;
@@ -54,7 +58,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
       setState(() {
         _status = _ScanStatus.error;
-        _errorMessage = 'Could not access camera/gallery: $e';
+        _errorMessage =
+            'Could not access camera/gallery: $e';
       });
 
       await AppAudioService.instance.playError();
