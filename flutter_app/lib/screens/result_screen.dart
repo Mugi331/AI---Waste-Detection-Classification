@@ -27,17 +27,23 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
 
-    // Play the success sound once when a confident detection result opens.
-    // No-detection is a valid AI outcome, not an application error.
+    // Play one feedback sound when ResultScreen first opens.
     if (widget.response.hasResult) {
+      // Waste successfully detected.
       AppAudioService.instance.playSuccess();
+    } else {
+      // No confident detection was produced.
+      // Reuse error.mp3 as the no-detection feedback sound.
+      AppAudioService.instance.playError();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detection Result')),
+      appBar: AppBar(
+        title: const Text('Detection Result'),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -49,41 +55,53 @@ class _ResultScreenState extends State<ResultScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // --- Image + single bounding-box overlay -----------
-                      // The AspectRatio here is matched exactly to the
-                      // analysed image's own aspect ratio, so BoxFit.cover
-                      // produces no cropping/letterboxing — see the
-                      // alignment note in bounding_box_overlay.dart.
+                      // The AspectRatio is matched to the analysed image,
+                      // preserving the expected box/image relationship.
                       ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: AspectRatio(
-                          aspectRatio: widget.response.imageWidth / widget.response.imageHeight,
+                          aspectRatio:
+                              widget.response.imageWidth /
+                              widget.response.imageHeight,
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              Image.memory(widget.imageBytes, fit: BoxFit.cover),
+                              Image.memory(
+                                widget.imageBytes,
+                                fit: BoxFit.cover,
+                              ),
                               BoundingBoxOverlay(
-                                detection: widget.response.hasResult
-                                    ? widget.response.primaryDetection
-                                    : null,
-                                imageWidth: widget.response.imageWidth,
-                                imageHeight: widget.response.imageHeight,
+                                detection:
+                                    widget.response.hasResult
+                                        ? widget.response.primaryDetection
+                                        : null,
+                                imageWidth:
+                                    widget.response.imageWidth,
+                                imageHeight:
+                                    widget.response.imageHeight,
                               ),
                             ],
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
 
                       // --- Single result, or no-detection state ----------
                       if (widget.response.hasResult)
-                        DetectionCard(detection: widget.response.primaryDetection!)
+                        DetectionCard(
+                          detection:
+                              widget.response.primaryDetection!,
+                        )
                       else
                         _buildNoDetectionState(context),
                     ],
                   ),
                 ),
               ),
+
               const SizedBox(height: 12),
+
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -92,8 +110,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
                     if (!context.mounted) return;
 
-                    // ResultScreen was pushed from ScanScreen, so popping
-                    // returns directly to the existing scanner.
+                    // ResultScreen was pushed from ScanScreen,
+                    // so pop returns directly to the existing scanner.
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.refresh_rounded),
@@ -110,29 +128,50 @@ class _ResultScreenState extends State<ResultScreen> {
   Widget _buildNoDetectionState(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+        vertical: 32,
+        horizontal: 20,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: AppColors.borderLight,
+        ),
       ),
       child: Column(
         children: [
-          const Icon(Icons.search_off_rounded, size: 44, color: AppColors.brownSecondary),
+          const Icon(
+            Icons.search_off_rounded,
+            size: 44,
+            color: AppColors.brownSecondary,
+          ),
+
           const SizedBox(height: 12),
+
           Text(
             "Couldn't identify this one",
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.brownPrimary,
-                ),
+            style:
+                Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(
+                      color: AppColors.brownPrimary,
+                    ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 6),
+
           Text(
             'Try centring one item, moving closer, or improving the lighting.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.brownSecondary,
-                ),
+            style:
+                Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
+                      color: AppColors.brownSecondary,
+                    ),
             textAlign: TextAlign.center,
           ),
         ],
