@@ -20,7 +20,10 @@ INPUT_SIZE = 640
 DETECTOR_CONFIDENCE = 0.25
 NMS_IOU_THRESHOLD = 0.45
 
+# Deployment acceptance thresholds
 ACCEPTANCE_CONFIDENCE = 0.50
+GLASS_ACCEPTANCE_CONFIDENCE = 0.65
+
 MIN_BOX_AREA_RATIO = 0.02
 CENTER_REGION_RATIO = 0.60
 
@@ -396,9 +399,17 @@ def select_primary_detection(
 
     for candidate in candidates:
 
+        # Apply a stricter validation-calibrated
+        # acceptance threshold for Glass.
+        acceptance_threshold = (
+            GLASS_ACCEPTANCE_CONFIDENCE
+            if candidate["class"] == "Glass"
+            else ACCEPTANCE_CONFIDENCE
+        )
+
         if (
             candidate["confidence"]
-            < ACCEPTANCE_CONFIDENCE
+            < acceptance_threshold
         ):
             continue
 
