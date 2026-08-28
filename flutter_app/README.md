@@ -1,4 +1,4 @@
-# EcoSort AI — Flutter Web Frontend
+# WE Snap — Flutter Web Frontend
 
 Mobile-first prototype for the Waste Detection & Classification for
 Recycling Assistance project. The AI model (YOLOv8n today, possibly
